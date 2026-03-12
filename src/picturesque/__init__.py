@@ -12,10 +12,13 @@ Elements are stacked vertically using three alignment modes:
 A picture (``pic_position='left'`` or ``'right'``) is scaled to the full image
 height and pasted on the chosen side before any text elements are drawn.
 """
+from __future__ import annotations
+
 import random
 import os
 import os.path
 import textwrap
+from typing import Literal
 import PIL
 from PIL import Image, ImageDraw, ImageFont
 from hashlib import sha1
@@ -45,9 +48,11 @@ char_replacement = {
 }
 
 
-def generate_image(elements=None, width=WIDTH, height=HEIGHT, bg=BG,
-                   pics_dir=PICS_DIR, pic_filename=None,
-                   pic_selection_key=None, pic_position=None):
+def generate_image(elements: list[Element] | None = None, width: int = WIDTH,
+                   height: int = HEIGHT, bg: str = BG,
+                   pics_dir: str = PICS_DIR, pic_filename: str | None = None,
+                   pic_selection_key: str | None = None,
+                   pic_position: Literal['left', 'right'] | None = None) -> Image.Image:
     """Generate a postcard-style image from a list of elements.
 
     Elements are laid out vertically in the available space (the full image
@@ -268,13 +273,14 @@ def generate_image(elements=None, width=WIDTH, height=HEIGHT, bg=BG,
     return img
 
 
-def _cleanup_chars(s):
+def _cleanup_chars(s: str) -> str:
     for bad, good in char_replacement.items():
         s = s.replace(bad, good)
     return s
 
 
-def _select_pic(pics_dir=None, filename=None, selection_key=None):
+def _select_pic(pics_dir: str | None = None, filename: str | None = None,
+                selection_key: str | None = None) -> str | None:
     if filename is None and selection_key is None:
         # select random pic in 'pics' dir
         try:
@@ -299,7 +305,8 @@ def _select_pic(pics_dir=None, filename=None, selection_key=None):
     return path
 
 
-def _scale_and_paste_pic(path=None, img=None, pic_position='left'):
+def _scale_and_paste_pic(path: str, img: Image.Image,
+                          pic_position: Literal['left', 'right'] = 'left') -> int:
     if pic_position not in {'left', 'right'}:
         raise ValueError(
             f"pic_position must be 'left' or 'right'; got {pic_position!r}"
@@ -326,7 +333,7 @@ def _scale_and_paste_pic(path=None, img=None, pic_position='left'):
     return Wpic
 
 
-def _validate_elements(elements):
+def _validate_elements(elements: list[Element]) -> list[Element]:
     if not all(isinstance(x, Element) for x in elements):
         raise TypeError('All elements must be instances of Element')
     # only one element can have valign='center'
