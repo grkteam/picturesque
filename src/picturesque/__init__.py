@@ -1,3 +1,17 @@
+"""picturesque — postcard-like image generation from text and pictures.
+
+Layout model
+------------
+Elements are stacked vertically using three alignment modes:
+
+* ``valign='top'``    — placed from the top downwards, consuming space as they go.
+* ``valign='bottom'`` — placed from the bottom upwards, consuming space as they go.
+* ``valign='center'`` — placed last, centred in whatever space remains between
+  the top and bottom elements.  At most one element may use ``valign='center'``.
+
+A picture (``pic_position='left'`` or ``'right'``) is scaled to the full image
+height and pasted on the chosen side before any text elements are drawn.
+"""
 import random
 import os
 import os.path
@@ -11,6 +25,8 @@ from .elements import (
     MultilineQuote,
     HLine,
 )
+
+__all__ = ['Textline', 'MultilineQuote', 'HLine', 'generate_image']
 
 WIDTH = 1528
 HEIGHT = 800
@@ -29,11 +45,59 @@ char_replacement = {
 }
 
 
-def generate_image(elements=[], width=WIDTH, height=HEIGHT, bg=BG,
+def generate_image(elements=None, width=WIDTH, height=HEIGHT, bg=BG,
                    pics_dir=PICS_DIR, pic_filename=None,
                    pic_selection_key=None, pic_position=None):
+    """Generate a postcard-style image from a list of elements.
+
+    Elements are laid out vertically in the available space (the full image
+    width, or the portion not occupied by the picture).  Elements with
+    ``valign='top'`` are stacked from the top; elements with
+    ``valign='bottom'`` are stacked from the bottom; the single element with
+    ``valign='center'`` (if any) is placed last in the remaining space.
+
+    Parameters
+    ----------
+    elements : list of Element, optional
+        Ordered list of :class:`Textline`, :class:`MultilineQuote`, or
+        :class:`HLine` instances to render.  Defaults to an empty list.
+    width : int, optional
+        Image width in pixels (default 1528).
+    height : int, optional
+        Image height in pixels (default 800).
+    bg : str, optional
+        Background colour as a name or hex string (default ``'white'``).
+    pics_dir : str, optional
+        Directory that contains candidate picture files (default ``'pics'``).
+    pic_filename : str, optional
+        Exact filename of the picture to use.  When provided, *pics_dir* is
+        used to build the full path.  Mutually exclusive with
+        *pic_selection_key*.
+    pic_selection_key : str, optional
+        Arbitrary string whose hash deterministically selects a picture from
+        *pics_dir*.  Mutually exclusive with *pic_filename*.
+    pic_position : str or None, optional
+        Where to place the picture — ``'left'``, ``'right'``, or ``None``
+        (no picture, default).
+
+    Returns
+    -------
+    PIL.Image.Image
+        The rendered image.
+
+    Raises
+    ------
+    ValueError
+        If *pic_position* is not one of ``'left'``, ``'right'``, or ``None``,
+        or if more than one element uses ``valign='center'``.
+    """
+    if elements is None:
+        elements = []
     elements = _validate_elements(elements)
-    assert pic_position in {'left', 'right', None}
+    if pic_position not in {'left', 'right', None}:
+        raise ValueError(
+            f"pic_position must be 'left', 'right', or None; got {pic_position!r}"
+        )
     W, H = width, height
     img = Image.new('RGB', (W, H), bg)
 
@@ -73,7 +137,7 @@ def generate_image(elements=[], width=WIDTH, height=HEIGHT, bg=BG,
             # find the largest font size that fits ---
             font_sizes = range(e.max_font_size, 12, -1)
             for font_size in font_sizes:
-                font = ImageFont.truetype('fonts/'+e.font, font_size)
+                font = ImageFont.truetype(e.font, font_size)
                 _, _, w, h = draw.textbbox(((0, 0)), e.text, font=font)
                 if w + 2*e.hmargin < Wspace:
                     break
@@ -104,7 +168,10 @@ def generate_image(elements=[], width=WIDTH, height=HEIGHT, bg=BG,
                 Y1 -= h + e.vmargin
             else:
                 # center valign => last element => no need to adjust
-                assert i == len(elements) - 1
+                if i != len(elements) - 1:
+                    raise ValueError(
+                        'Only the last element may use valign="center"'
+                    )
 
         elif isinstance(e, MultilineQuote):
             # If using monospace font, then space after newline
@@ -115,7 +182,7 @@ def generate_image(elements=[], width=WIDTH, height=HEIGHT, bg=BG,
             # find the largest font size that fits
             text_font_sizes = range(72, 12, -1)
             for font_size in text_font_sizes:
-                font = ImageFont.truetype('fonts/'+e.font, font_size)
+                font = ImageFont.truetype(e.font, font_size)
                 _, _, wtext, htext = draw.multiline_textbbox(
                     ((0, 0)), text, font=font,
                     spacing=e.line_spacing_px)
@@ -150,12 +217,15 @@ def generate_image(elements=[], width=WIDTH, height=HEIGHT, bg=BG,
 
             # update Y0, Y1
             if e.valign == 'top':
-                Y0 += h + 2*e.vmargin
+                Y0 += htext + 2*e.vmargin
             elif e.valign == 'bottom':
-                Y1 -= h + 2*e.vmargin
+                Y1 -= htext + 2*e.vmargin
             else:
                 # center valign => last element => no need to adjust
-                assert i == len(elements) - 1
+                if i != len(elements) - 1:
+                    raise ValueError(
+                        'Only the last element may use valign="center"'
+                    )
 
         elif isinstance(e, HLine):
             # fix possible overflow
@@ -190,7 +260,10 @@ def generate_image(elements=[], width=WIDTH, height=HEIGHT, bg=BG,
                 Y1 -= e.vmargin + e.thickness
             elif e.valign == 'center':
                 # center valign => last element => no need to adjust
-                assert i == len(elements) - 1
+                if i != len(elements) - 1:
+                    raise ValueError(
+                        'Only the last element may use valign="center"'
+                    )
 
     return img
 
@@ -227,9 +300,16 @@ def _select_pic(pics_dir=None, filename=None, selection_key=None):
 
 
 def _scale_and_paste_pic(path=None, img=None, pic_position='left'):
-    assert pic_position in {'left', 'right'}
-    assert os.path.isfile(path) is True
-    assert isinstance(img, PIL.Image.Image)
+    if pic_position not in {'left', 'right'}:
+        raise ValueError(
+            f"pic_position must be 'left' or 'right'; got {pic_position!r}"
+        )
+    if not os.path.isfile(path):
+        raise ValueError(f'pic path does not exist or is not a file: {path!r}')
+    if not isinstance(img, PIL.Image.Image):
+        raise TypeError(
+            f'img must be a PIL.Image.Image; got {type(img).__name__}'
+        )
     pic = Image.open(path)
     w, h = pic.size
     W, H = img.size
@@ -247,7 +327,8 @@ def _scale_and_paste_pic(path=None, img=None, pic_position='left'):
 
 
 def _validate_elements(elements):
-    assert all(map(lambda x: isinstance(x, Element), elements))
+    if not all(isinstance(x, Element) for x in elements):
+        raise TypeError('All elements must be instances of Element')
     # only one element can have valign='center'
     centered = []
     for i, e in enumerate(elements):
