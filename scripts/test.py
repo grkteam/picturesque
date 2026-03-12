@@ -1,7 +1,4 @@
-import sys
-sys.path.insert(1, '../..')
-
-import imagen  # noqa
+import picturesque
 
 PALE_YELLOW = '#fef8e8'
 LOGO_RED = '#cd2027'
@@ -30,27 +27,27 @@ def test(width=1528, height=800, bg=PALE_YELLOW,
          head_max_font_size=192, sub_max_font_size=84,
          text_chars_per_line=36, url_max_font_size=60):
 
-    heading = imagen.Textline(text=company_name.upper(),
+    heading = picturesque.Textline(text=company_name.upper(),
                               font=head_font,
                               max_font_size=head_max_font_size,
                               color=head_color,
                               hmargin=head_hmargin,
                               vmargin=head_vmargin)
 
-    line = imagen.HLine(length=line_width,
+    line = picturesque.HLine(length=line_width,
                         thickness=line_height,
                         color=line_color,
                         hmargin=line_hmargin,
                         vmargin=line_vmargin)
 
-    subheading = imagen.Textline(text=sub_text,
+    subheading = picturesque.Textline(text=sub_text,
                                  font=sub_font,
                                  max_font_size=sub_max_font_size,
                                  color=sub_color,
                                  hmargin=sub_hmargin,
                                  vmargin=sub_vmargin)
 
-    quote = imagen.MultilineQuote(text=text,
+    quote = picturesque.MultilineQuote(text=text,
                                   font=text_font,
                                   chars_per_line=text_chars_per_line,
                                   color=text_color,
@@ -59,7 +56,7 @@ def test(width=1528, height=800, bg=PALE_YELLOW,
                                   hmargin=text_hmargin,
                                   vmargin=text_vmargin)
 
-    footer = imagen.Textline(text=url,
+    footer = picturesque.Textline(text=url,
                              font=url_font,
                              max_font_size=url_max_font_size,
                              color=url_color,
@@ -71,7 +68,7 @@ def test(width=1528, height=800, bg=PALE_YELLOW,
 
     elements = [heading, line, subheading, quote, footer]
 
-    img = imagen.generate_image(
+    img = picturesque.generate_image(
         elements=elements,
         width=1528, height=800, bg=bg,
         pic_selection_key=url,

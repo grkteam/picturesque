@@ -1,4 +1,13 @@
-__pycache__
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
 scripts/*.jpg
 *~
 **/.ipynb_checkpoints
+.venv/
+.env/
