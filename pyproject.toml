@@ -1,13 +1,37 @@
 [build-system]
-requires = [
-	"setuptools>=67.8",
-]
+requires = ["setuptools>=67.8"]
+build-backend = "setuptools.build_meta"
 
 [project]
-name = "imagen"
+name = "picturesque"
+version = "0.1.0"
 description = "Postcard-like image generation from textual posts and pics"
 requires-python = ">=3.8"
-dynamic = ["version"]
-dependencies = [
-	"pillow>=10.3.0",
+license = "MIT"
+authors = [
+    { name = "grkteam" },
 ]
+keywords = ["image", "generation", "postcard", "social-media", "pillow"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Graphics",
+]
+dependencies = [
+    "pillow>=10.3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/grkteam/picturesque"
+Repository = "https://github.com/grkteam/picturesque"
+Issues = "https://github.com/grkteam/picturesque/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
