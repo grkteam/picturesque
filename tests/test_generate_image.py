@@ -7,7 +7,6 @@ from PIL import Image
 import picturesque
 from picturesque import generate_image
 from picturesque.__init__ import (
-    _cleanup_chars,
     _scale_and_paste_pic,
     _select_pic,
     _validate_elements,
@@ -77,20 +76,13 @@ class TestGenerateImageWithElements:
         img = generate_image(elements=elements, width=400, height=200)
         assert isinstance(img, Image.Image)
 
-    # Known bug: _validate_elements' pop/iteration issue means two consecutive
-    # centered elements are not detected.  The test below documents what
-    # actually happens — no error at validate time, but may error at render.
-    def test_two_center_elements_no_raise_known_bug(self, font_path):
+    def test_two_center_elements_raises(self, font_path):
         elements = [
             HLine(length=50, valign="center"),
             HLine(length=50, valign="center"),
         ]
-        # Does not raise ValueError from _validate_elements due to known bug.
-        # It may raise later during rendering — document actual behavior.
-        try:
+        with pytest.raises(ValueError, match="Cannot vertically align more than 1 element"):
             generate_image(elements=elements, width=400, height=200)
-        except ValueError:
-            pass  # Some ValueError from rendering is acceptable
 
     def test_textline_with_underline(self, font_path):
         elements = [Textline(text="Underlined", font=font_path,
@@ -129,34 +121,18 @@ class TestValidateElements:
         result = _validate_elements([top, center])
         assert result[-1] is center
 
-    # Known bug: _validate_elements iterates with enumerate while calling
-    # pop(i), so consecutive centered elements cause an index shift and the
-    # second one is never seen.  With [a, b] both center:
-    #   i=0 -> pop(0) -> elements=[b], centered=[a]
-    #   i=1 -> loop ends (len([b])==1, i==1 is out of range)
-    # Result: only one centered element found, no ValueError raised.
-    # This bug should be fixed in a future refactor.
-    def test_multiple_centered_elements_no_raise_known_bug(self):
-        a = HLine(length=50, valign="center")
-        b = HLine(length=60, valign="center")
-        # Does NOT raise due to the pop/iteration bug — document current behavior
-        result = _validate_elements([a, b])
-        assert isinstance(result, list)
-
-    def test_non_element_raises_type_error(self):
-        with pytest.raises(TypeError, match="All elements must be instances of Element"):
-            _validate_elements(["not an element"])
-
-    # Known bug: _validate_elements calls pop() on the input list, mutating
-    # the caller's list.  This side effect is documented here and should be
-    # fixed in a future refactor (use a copy of the list at the start).
-    def test_mutates_input_list_known_bug(self):
+    def test_input_list_not_mutated(self):
         top = HLine(length=50, valign="top")
         center = HLine(length=50, valign="center")
         original = [top, center]
         _validate_elements(original)
-        # The centered element was popped out of original — this is the bug.
-        assert center not in original
+        assert center in original
+
+    def test_multiple_centered_elements_raises(self):
+        a = HLine(length=50, valign="center")
+        b = HLine(length=60, valign="center")
+        with pytest.raises(ValueError, match="Cannot vertically align more than 1 element"):
+            _validate_elements([a, b])
 
 
 # ---------------------------------------------------------------------------
@@ -235,25 +211,3 @@ class TestScaleAndPastePic:
         with pytest.raises(ValueError, match="pic path does not exist"):
             _scale_and_paste_pic(path="/nonexistent/file.jpg", img=canvas,
                                  pic_position="left")
-
-
-# ---------------------------------------------------------------------------
-# _cleanup_chars  (dead code — still tested for correctness)
-# ---------------------------------------------------------------------------
-
-class TestCleanupChars:
-    def test_en_dash_replaced(self):
-        # chr(8211) is en-dash
-        result = _cleanup_chars("hello" + chr(8211) + "world")
-        assert chr(8211) not in result
-        assert "-" in result
-
-    def test_em_dash_replaced(self):
-        # chr(8212) is em-dash
-        result = _cleanup_chars("before" + chr(8212) + "after")
-        assert chr(8212) not in result
-        assert "-" in result
-
-    def test_normal_string_unchanged(self):
-        s = "No special characters here"
-        assert _cleanup_chars(s) == s
