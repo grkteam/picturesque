@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from typing import Literal
+
+
 class Element:
     """Common ancestor for all elements, useless on its own.
 
@@ -17,8 +22,10 @@ class Element:
     vmargin : int (pixels)
         Top margin if valign=='top', bottom margin if valign=='bottom'
     """
-    def __init__(self, color='black', align='center', valign='top',
-                 hmargin=10, vmargin=10):
+    def __init__(self, color: str = 'black',
+                 align: Literal['left', 'right', 'center'] = 'center',
+                 valign: Literal['top', 'bottom', 'center'] = 'top',
+                 hmargin: int = 10, vmargin: int = 10) -> None:
         if align not in {'left', 'right', 'center'}:
             raise ValueError(f"align must be 'left', 'right', or 'center'; got {align!r}")
         if valign not in {'top', 'bottom', 'center'}:
@@ -53,13 +60,27 @@ class Textline(Element):
         Whether to draw an underline beneath the text (default ``False``).
     underline_thickness : int, optional
         Thickness of the underline in pixels (default 1).
-    **kwargs
-        Additional keyword arguments forwarded to :class:`Element`
-        (``color``, ``align``, ``valign``, ``hmargin``, ``vmargin``).
+    color : str, optional
+        Color of text (default ``'black'``).
+    align : str, optional
+        Horizontal alignment — ``'left'``, ``'right'``, or ``'center'``
+        (default ``'center'``).
+    valign : str, optional
+        Vertical alignment — ``'top'``, ``'bottom'``, or ``'center'``
+        (default ``'top'``).
+    hmargin : int, optional
+        Horizontal margin in pixels (default 10).
+    vmargin : int, optional
+        Vertical margin in pixels (default 10).
     """
-    def __init__(self, text=None, font=None, font_size=None, max_font_size=16,
-                 underline=False, underline_thickness=1, **kwargs):
-        Element.__init__(self, **kwargs)
+    def __init__(self, text: str, font: str, font_size: int | None = None,
+                 max_font_size: int = 16, underline: bool = False,
+                 underline_thickness: int = 1, color: str = 'black',
+                 align: Literal['left', 'right', 'center'] = 'center',
+                 valign: Literal['top', 'bottom', 'center'] = 'top',
+                 hmargin: int = 10, vmargin: int = 10) -> None:
+        Element.__init__(self, color=color, align=align, valign=valign,
+                         hmargin=hmargin, vmargin=vmargin)
         if not text:
             raise ValueError('text must be a non-empty string')
         if font_size and max_font_size:
@@ -88,13 +109,26 @@ class MultilineQuote(Element):
         Maximum number of characters per wrapped line (default 40).
     line_spacing_px : int, optional
         Extra spacing between lines in pixels (default 0).
-    **kwargs
-        Additional keyword arguments forwarded to :class:`Element`
-        (``color``, ``align``, ``valign``, ``hmargin``, ``vmargin``).
+    color : str, optional
+        Color of text (default ``'black'``).
+    align : str, optional
+        Horizontal alignment — ``'left'``, ``'right'``, or ``'center'``
+        (default ``'center'``).
+    valign : str, optional
+        Vertical alignment — ``'top'``, ``'bottom'``, or ``'center'``
+        (default ``'top'``).
+    hmargin : int, optional
+        Horizontal margin in pixels (default 10).
+    vmargin : int, optional
+        Vertical margin in pixels (default 10).
     """
-    def __init__(self, text=None, font=None, chars_per_line=40,
-                 line_spacing_px=0, **kwargs):
-        Element.__init__(self, **kwargs)
+    def __init__(self, text: str, font: str, chars_per_line: int = 40,
+                 line_spacing_px: int = 0, color: str = 'black',
+                 align: Literal['left', 'right', 'center'] = 'center',
+                 valign: Literal['top', 'bottom', 'center'] = 'top',
+                 hmargin: int = 10, vmargin: int = 10) -> None:
+        Element.__init__(self, color=color, align=align, valign=valign,
+                         hmargin=hmargin, vmargin=vmargin)
         if not (isinstance(chars_per_line, int) and chars_per_line > 0):
             raise ValueError(f'chars_per_line must be a positive int; got {chars_per_line!r}')
         self.text = text
@@ -112,12 +146,26 @@ class HLine(Element):
         Length of the line in pixels (default 100).
     thickness : int, optional
         Thickness of the line in pixels (default 2).
-    **kwargs
-        Additional keyword arguments forwarded to :class:`Element`
-        (``color``, ``align``, ``valign``, ``hmargin``, ``vmargin``).
+    color : str, optional
+        Color of the line (default ``'black'``).
+    align : str, optional
+        Horizontal alignment — ``'left'``, ``'right'``, or ``'center'``
+        (default ``'center'``).
+    valign : str, optional
+        Vertical alignment — ``'top'``, ``'bottom'``, or ``'center'``
+        (default ``'top'``).
+    hmargin : int, optional
+        Horizontal margin in pixels (default 10).
+    vmargin : int, optional
+        Vertical margin in pixels (default 10).
     """
-    def __init__(self, length=100, thickness=2, **kwargs):
-        Element.__init__(self, **kwargs)
+    def __init__(self, length: int = 100, thickness: int = 2,
+                 color: str = 'black',
+                 align: Literal['left', 'right', 'center'] = 'center',
+                 valign: Literal['top', 'bottom', 'center'] = 'top',
+                 hmargin: int = 10, vmargin: int = 10) -> None:
+        Element.__init__(self, color=color, align=align, valign=valign,
+                         hmargin=hmargin, vmargin=vmargin)
         if not (isinstance(length, int) and length > 0):
             raise ValueError(f'length must be a positive int; got {length!r}')
         if not (isinstance(thickness, int) and thickness > 0):
