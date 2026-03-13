@@ -74,7 +74,7 @@ class Textline(Element):
         Vertical margin in pixels (default 10).
     """
     def __init__(self, text: str, font: str, font_size: int | None = None,
-                 max_font_size: int = 16, underline: bool = False,
+                 max_font_size: int | None = None, underline: bool = False,
                  underline_thickness: int = 1, color: str = 'black',
                  align: Literal['left', 'right', 'center'] = 'center',
                  valign: Literal['top', 'bottom', 'center'] = 'top',
@@ -83,8 +83,10 @@ class Textline(Element):
                          hmargin=hmargin, vmargin=vmargin)
         if not text:
             raise ValueError('text must be a non-empty string')
-        if font_size and max_font_size:
+        if font_size is not None and max_font_size is not None:
             raise ValueError('Specify either font_size or max_font_size, not both')
+        if font_size is None and max_font_size is None:
+            max_font_size = 16
         if underline not in {True, False}:
             raise TypeError(f'underline must be True or False; got {underline!r}')
         self.text = text

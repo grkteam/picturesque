@@ -29,23 +29,15 @@ from .elements import (
     HLine,
 )
 
-__all__ = ['Textline', 'MultilineQuote', 'HLine', 'generate_image']
+__all__ = ['Textline', 'MultilineQuote', 'HLine', 'generate_image', '__version__']
+
+__version__ = "0.1.0"
 
 WIDTH = 1528
 HEIGHT = 800
 MIN_WSPACE = 100
 BG = 'white'
-HEAD_COLOR = 'black'
-LINE_COLOR = 'black'
-SUB_COLOR = 'red'
-TEXT_COLOR = 'black'
-FOOTER_COLOR = 'blue'
 PICS_DIR = 'pics'
-
-char_replacement = {
-    chr(8211): '-',
-    chr(8212): '-',
-}
 
 
 def generate_image(elements: list[Element] | None = None, width: int = WIDTH,
@@ -139,16 +131,25 @@ def generate_image(elements: list[Element] | None = None, width: int = WIDTH,
     for i, e in enumerate(elements):
 
         if isinstance(e, Textline):
-            # find the largest font size that fits ---
-            font_sizes = range(e.max_font_size, 12, -1)
-            for font_size in font_sizes:
-                font = ImageFont.truetype(e.font, font_size)
+            # find the font size to use ---
+            if e.font_size is not None:
+                font = ImageFont.truetype(e.font, e.font_size)
                 _, _, w, h = draw.textbbox(((0, 0)), e.text, font=font)
-                if w + 2*e.hmargin < Wspace:
-                    break
+            else:
+                font_sizes = range(e.max_font_size, 12, -1)
+                for font_size in font_sizes:
+                    font = ImageFont.truetype(e.font, font_size)
+                    _, _, w, h = draw.textbbox(((0, 0)), e.text, font=font)
+                    if w + 2*e.hmargin < Wspace:
+                        break
 
             # horizontal position
-            x = int(Xc - w/2)
+            if e.align == 'left':
+                x = X0 + e.hmargin
+            elif e.align == 'right':
+                x = X0 + Wspace - w - e.hmargin
+            elif e.align == 'center':
+                x = int(Xc - w/2)
 
             # vertical position
             if e.valign == 'top':
@@ -234,16 +235,17 @@ def generate_image(elements: list[Element] | None = None, width: int = WIDTH,
 
         elif isinstance(e, HLine):
             # fix possible overflow
-            if e.length + 2*e.hmargin > Wspace:
-                e.length = Wspace - 2*e.hmargin
+            line_length = e.length
+            if line_length + 2*e.hmargin > Wspace:
+                line_length = Wspace - 2*e.hmargin
 
             # horizontal position ---
             if e.align == 'left':
                 x0 = X0 + e.hmargin
             elif e.align == 'right':
-                x0 = X0 + Wspace - e.length - e.hmargin
+                x0 = X0 + Wspace - line_length - e.hmargin
             elif e.align == 'center':
-                x0 = int(Xc - e.length/2)
+                x0 = int(Xc - line_length/2)
 
             # vertical position ---
             if e.valign == 'top':
@@ -255,7 +257,7 @@ def generate_image(elements: list[Element] | None = None, width: int = WIDTH,
 
             # draw line
             xy0 = (x0, y)
-            xy1 = (x0 + e.length, y)
+            xy1 = (x0 + line_length, y)
             draw.line((xy0, xy1), width=e.thickness, fill=e.color)
 
             # update Y0, Y1
@@ -273,10 +275,14 @@ def generate_image(elements: list[Element] | None = None, width: int = WIDTH,
     return img
 
 
-def _cleanup_chars(s: str) -> str:
-    for bad, good in char_replacement.items():
-        s = s.replace(bad, good)
-    return s
+def _validate_elements(elements: list[Element]) -> list[Element]:
+    if not all(isinstance(x, Element) for x in elements):
+        raise TypeError('All elements must be instances of Element')
+    non_centered = [e for e in elements if e.valign != 'center']
+    centered = [e for e in elements if e.valign == 'center']
+    if len(centered) > 1:
+        raise ValueError('Cannot vertically align more than 1 element')
+    return non_centered + centered
 
 
 def _select_pic(pics_dir: str | None = None, filename: str | None = None,
@@ -331,20 +337,3 @@ def _scale_and_paste_pic(path: str, img: Image.Image,
         Xpic = W - Wpic
     img.paste(pic_scaled, (Xpic, 0))
     return Wpic
-
-
-def _validate_elements(elements: list[Element]) -> list[Element]:
-    if not all(isinstance(x, Element) for x in elements):
-        raise TypeError('All elements must be instances of Element')
-    # only one element can have valign='center'
-    centered = []
-    for i, e in enumerate(elements):
-        if e.valign == 'center':
-            centered.append(elements.pop(i))
-    if len(centered) > 1:
-        raise ValueError('Cannot vertically align more than 1 element')
-    # put the vertically centered element at the end:
-    # (need to know the available space after all other elements
-    #  are positioned)
-    elements = elements + centered
-    return elements

@@ -75,22 +75,10 @@ class TestTextline:
             Textline(text="Hi", font="fonts/arial.ttf",
                      font_size=24, max_font_size=32)
 
-    # Known bug: Textline(text="Hi", font="x.ttf", font_size=24) raises
-    # ValueError because max_font_size defaults to 16 (truthy) and the check
-    # `if font_size and max_font_size` fires even though the user only provided
-    # font_size.  This is documented here as the current (buggy) behavior and
-    # should be fixed in a future refactor.
-    def test_font_size_only_raises_due_to_known_bug(self):
-        with pytest.raises(ValueError, match="Specify either font_size or max_font_size"):
-            Textline(text="Hi", font="fonts/arial.ttf", font_size=24)
-
-    # Once the bug above is fixed, font_size=24 with no max_font_size should
-    # construct successfully.  Enable this test after the fix.
-    @pytest.mark.skip(reason="Known bug: font_size-only construction raises ValueError -- remove skip after fix")
-    def test_font_size_only_succeeds_after_fix(self):
+    def test_font_size_only_succeeds(self):
         t = Textline(text="Hi", font="fonts/arial.ttf", font_size=24)
         assert t.font_size == 24
-        assert t.max_font_size == 16  # default unchanged
+        assert t.max_font_size is None
 
     def test_invalid_underline_raises(self):
         with pytest.raises(TypeError, match="underline must be True or False"):
